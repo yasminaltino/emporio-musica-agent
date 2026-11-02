@@ -55,12 +55,13 @@ def create_embeddings():
         persist_directory=str(DB_DIR),
     )
 
-    print(f"Trechos indexados: {len(unique_chunks)}")
-
     return db
 
 
 def get_retriever():
+    # Cria o índice caso ainda não exista
+    if not DB_DIR.exists():
+        create_embeddings()
     embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
 
     db = Chroma(
