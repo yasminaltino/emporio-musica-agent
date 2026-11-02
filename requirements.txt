@@ -1,6 +1,7 @@
 # LLM e agentes
 langchain
 langchain-google-genai
+google-api-core
 
 # RAG
 langchain-community

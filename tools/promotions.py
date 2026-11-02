@@ -14,14 +14,15 @@ def load_promotions():
 
 @tool
 def search_promotions(
-    product_id: int | None = None,
+    product_ids: list[int] | None = None,
     description: str = "",
     active_only: bool = True,
 ) -> str:
     """
-    Busca promoções por ID do produto ou descrição da promoção.
+    Busca promoções por IDs de produtos ou descrição da promoção.
     Por padrão, apenas promoções ativas são retornadas.
     Também pode retornar promoções inativas quando active_only for False.
+    Use product_ids para consultar promoções de um ou vários produtos específicos.
     Retorna uma string JSON com os resultados da busca.
     """
     df = load_promotions()
@@ -29,8 +30,8 @@ def search_promotions(
     if active_only:
         df = df[df["is_active"] == 1]
 
-    if product_id is not None:
-        df = df[df["product_id"] == product_id]
+    if product_ids is not None:
+        df = df[df["product_id"].isin(product_ids)]
 
     if description:
         df = df[

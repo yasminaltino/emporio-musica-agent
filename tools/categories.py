@@ -8,6 +8,14 @@ from tools.helpers import sanitize_text
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 
+CATEGORY_ALIASES = {
+    "violao": "violoes",
+    "ukulele": "ukuleles",
+    "guitarra": "guitarras",
+    "baixo": "baixos",
+}
+
+
 def load_categories():
     return pd.read_csv(DATA_DIR / "desafio_tecnico_ai_eng - categories.csv")
 
@@ -16,13 +24,13 @@ def load_categories():
 def search_categories(name: str = "", specifications: str = "") -> str:
     """
     Busca categorias no catálogo da loja por nome ou características descritivas.
-    Crucial: Se a busca retornar 'No categories found.', a categoria não existe.
-    Não tente variações ou outros parâmetros após o retorno vazio.
     """
     df = load_categories()
 
     if name:
         name_clean = sanitize_text(name)
+        name_clean = CATEGORY_ALIASES.get(name_clean, name_clean)
+
         df = df[
             df["name"]
             .apply(sanitize_text)

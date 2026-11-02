@@ -7,6 +7,30 @@ from tools.helpers import sanitize_text
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
+STATUS_MAP = {
+    "entregue": "delivered",
+    "entregues": "delivered",
+    "enviado": "shipped",
+    "enviada": "shipped",
+    "em_transito": "shipped",
+    "confirmado": "confirmed",
+    "confirmada": "confirmed",
+    "confirmed": "confirmed",
+    "pendente": "pending",
+    "cancelado": "cancelled",
+    "cancelada": "cancelled",
+    "canceled": "cancelled",
+}
+
+PAYMENT_METHOD_MAP = {
+    "credito": "credit",
+    "cartao de credito": "credit",
+    "credit": "credit",
+    "debito": "debit",
+    "cartao de debito": "debit",
+    "debit": "debit",
+}
+
 
 def load_orders():
     return pd.read_csv(DATA_DIR / "desafio_tecnico_ai_eng - orders.csv")
@@ -14,7 +38,7 @@ def load_orders():
 
 @tool
 def search_orders(
-    order_id: int | None = None,
+    order_ids: list[int] | None = None,
     customer_id: int | None = None,
     order_date: str = "",
     status: str = "",
@@ -26,15 +50,18 @@ def search_orders(
     notes: str = "",
 ) -> str:
     """
-    Busca pedidos de clientes usando ID do pedido, ID do cliente, datas, status,
+    Busca pedidos por uma lista de IDs, cliente, datas, status,
     valores, métodos de pagamento ou rastreio.
-    Crucial: Se retornar 'No orders found.', o pedido ou critério não existe.
-    Não tente variações ou outros parâmetros após o retorno vazio.
+
+    Use order_ids para consultar um ou vários pedidos.
+    Combine filtros quando necessário.
+    Se retornar 'No orders found.', não tente variações
+    de parâmetros sem uma justificativa.
     """
     df = load_orders()
 
-    if order_id is not None:
-        df = df[df["order_id"] == order_id]
+    if order_ids is not None:
+        df = df[df["order_id"].isin(order_ids)]
 
     if customer_id is not None:
         df = df[df["customer_id"] == customer_id]
@@ -46,35 +73,23 @@ def search_orders(
 
     if status:
         status_clean = sanitize_text(status)
-        df = df[
-            df["status"]
-            .apply(sanitize_text)
-            .str.contains(status_clean, regex=False, na=False)
-        ]
+        status_target = STATUS_MAP.get(status_clean, status_clean)
+
+        df = df[df["status"].apply(sanitize_text) == status_target]
 
     if min_total_brl is not None:
         df = df[df["total_brl"] >= min_total_brl]
     if max_total_brl is not None:
         df = df[df["total_brl"] <= max_total_brl]
 
-    # CORREÇÃO: Mapeia termos comuns em português para o padrão salvo no CSV (credit, pix, debit, boleto)
     if payment_method:
         method_clean = sanitize_text(payment_method)
-        if (
-            "credito" in method_clean
-            or "cartao" in method_clean
-            or "credit" in method_clean
-        ):
-            method_target = "credit"
-        elif "debito" in method_clean or "debit" in method_clean:
-            method_target = "debit"
-        else:
-            method_target = method_clean
+        method_target = PAYMENT_METHOD_MAP.get(method_clean, method_clean)
 
         df = df[
             df["payment_method"]
             .apply(sanitize_text)
-            .str.contains(method_target, regex=False, na=False)
+            .str.startswith(method_target, na=False)
         ]
 
     if tracking_code:
@@ -102,4 +117,4 @@ def search_orders(
     if df.empty:
         return "No orders found."
 
-    return df.head(10).to_json(orient="records", force_ascii=False)
+    return df.to_json(orient="records", force_ascii=False)

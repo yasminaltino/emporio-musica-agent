@@ -14,28 +14,35 @@ def load_products():
 
 @tool
 def search_products(
-    product_id: int | None = None,
+    product_ids: list[int] | None = None,
     name: str = "",
     category_id: int | None = None,
     max_price: float | None = None,
     min_price: float | None = None,
     available_only: bool = False,
     specifications: str = "",
+    limit: int | None = 10,
+    out_of_stock: bool = False,
 ) -> str:
     """
     Busca instrumentos e produtos no catálogo da loja.
+    Use limit para restringir o número de resultados retornados ou None para retornar todos os resultados.
     Crucial: Se a busca por 'name' ou 'specifications' retornar 'No products found.',
     significa que o item não existe na loja. Não tente palavras-chave alternativas,
     não remova os filtros informados pelo cliente e não faça buscas genéricas apenas por preço.
     Informe imediatamente ao cliente que o produto não está disponível.
+    Use product_ids para buscar um ou mais produtos específicos pelo ID.
     """
     df = load_products()
 
-    if product_id is not None:
-        df = df[df["product_id"] == product_id]
+    if product_ids is not None:
+        df = df[df["product_id"].isin(product_ids)]
 
     if available_only:
         df = df[(df["status"] == "active") & (df["stock_quantity"] > 0)]
+
+    if out_of_stock:
+        df = df[df["stock_quantity"] == 0]
 
     if name:
         name_clean = sanitize_text(name)
@@ -80,8 +87,9 @@ def search_products(
     if df.empty:
         return "No products found."
 
-    results = df[
-        ["product_id", "name", "price_brl", "stock_quantity", "description"]
-    ].head(5)
+    if limit is not None:
+        df = df.head(limit)
+
+    results = df[["product_id", "name", "price_brl", "stock_quantity", "description"]]
 
     return results.to_json(orient="records", force_ascii=False)

@@ -1,8 +1,11 @@
+import random
 import time
 
 from dotenv import load_dotenv
+from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from langchain.agents import create_agent
 from langchain_google_genai import ChatGoogleGenerativeAI
+from requests.exceptions import ConnectionError, ReadTimeout
 
 from tools.categories import search_categories
 from tools.customers import search_customers
@@ -30,20 +33,29 @@ REGRAS:
 2. Para perguntas sobre produtos, consulte a ferramenta de produtos.
 
 3. Para perguntas sobre pedidos:
-   - Localize o cliente quando necessário.
-   - Consulte os dados do pedido.
-   - Consulte os itens do pedido quando o cliente perguntar
-     quais produtos comprou.
-   - Utilize a ferramenta de produtos para obter os nomes
-     dos produtos correspondentes aos IDs.
+    - Confirme que o pedido pertence ao cliente mencionado
+    (customer_id) antes de consultar ou fornecer seus dados.
+    - Consulte os itens do pedido quando necessário e utilize a
+    ferramenta de produtos para obter os nomes correspondentes
+    aos IDs.
+    - Ao consultar produtos comprados por um cliente, considere
+    somente pedidos concluídos ou entregues.
+    Não considere pedidos cancelados como compras realizadas.
 
 4. Para perguntas sobre promoções, considere somente as
    promoções ativas. Nunca informe uma promoção inativa como
    se estivesse disponível.
 
-5. Para perguntas sobre políticas da loja (troca, devolução,
-   garantia, prazos, frete, cancelamento, atendimento e regras gerais),
-   consulte a ferramenta search_company_policies antes de responder.
+5. REGRAS PARA CONSULTAS ÀS POLÍTICAS:
+
+    - Utilize os trechos retornados por search_company_policies como fonte
+    para responder sobre as políticas da loja.
+    - Não invente prazos, valores, condições ou exceções que não estejam
+    explicitamente presentes nos documentos.
+    - Se a informação não estiver disponível ou estiver incompleta,
+    informe que a documentação não permite confirmar a resposta.
+    - Não generalize uma regra além das condições descritas no documento.
+    - Sempre que possível, informe a página de onde a informação foi obtida.
 
 6. Combine ferramentas quando necessário para responder
    completamente à pergunta.
@@ -66,14 +78,13 @@ REGRAS:
 12. Confie estritamente no primeiro resultado retornado pela ferramenta
     de busca de produtos. Não faça buscas redundantes ou parciais
     se a ferramenta já retornou dados para um filtro específico.
-
 """
 
 
 model = ChatGoogleGenerativeAI(
     model="gemini-3.5-flash-lite",
-    timeout=10,
-    max_retries=1,
+    timeout=60,
+    max_retries=2,
     thinking_level="minimal",  # Velocidade instantânea de resposta
 )
 
@@ -87,17 +98,37 @@ tools = [
     search_company_policies,
 ]
 
-agent = create_agent(
-    model=model,
-    tools=tools,
-    system_prompt=SYSTEM_PROMPT,
-)
+agent = create_agent(model=model, tools=tools, system_prompt=SYSTEM_PROMPT)
 
 
 def ask_agent(question: str) -> str:
     start = time.time()
+    max_attempts = 3
 
-    response = agent.invoke({"messages": [{"role": "user", "content": question}]})
+    retryable_errors = (
+        DeadlineExceeded,
+        ServiceUnavailable,
+        ReadTimeout,
+        ConnectionError,
+        TimeoutError,
+    )
+
+    for attempt in range(max_attempts):
+        try:
+            response = agent.invoke(
+                {"messages": [{"role": "user", "content": question}]}
+            )
+            break
+
+        except retryable_errors as e:
+            if attempt == max_attempts - 1:
+                return (
+                    "Estou com instabilidade temporária ao consultar as informações. "
+                    "Por favor, tente novamente em alguns instantes."
+                )
+
+            delay = (2**attempt) + random.uniform(0, 0.5)
+            time.sleep(delay)
 
     for message in response["messages"]:
         # Chamadas feitas pelo modelo
