@@ -1,4 +1,5 @@
 import json
+
 import pandas as pd
 import pytest
 
@@ -104,8 +105,7 @@ def test_search_products_by_min_price():
 def test_search_products_by_specification():
     results = get_results(specifications="nylon")
 
-    assert len(results) > 0
-    assert all("nylon" in p["specs"].lower() for p in results)
+    assert {product["product_id"] for product in results} == {81, 82}
 
 
 def test_search_products_without_stock():

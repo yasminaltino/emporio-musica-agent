@@ -1,4 +1,5 @@
 import json
+
 import pandas as pd
 import pytest
 
@@ -79,7 +80,7 @@ def get_results(**kwargs):
 
 
 def test_search_order_by_id():
-    results = get_results(order_id=1)
+    results = get_results(order_ids=[1])
 
     assert len(results) == 1
     assert results[0]["order_id"] == 1
@@ -148,7 +149,7 @@ def test_search_orders_without_filters():
 
 
 def test_search_nonexistent_order():
-    response = orders.search_orders.invoke({"order_id": 9999})
+    response = orders.search_orders.invoke({"order_ids": [9999]})
 
     assert response == "No orders found."
 
