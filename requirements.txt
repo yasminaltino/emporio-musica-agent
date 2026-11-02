@@ -1,0 +1,21 @@
+# LLM e agentes
+langchain
+langchain-google-genai
+
+# RAG
+langchain-community
+langchain-text-splitters
+langchain-chroma
+pypdf
+
+# Manipulação de dados
+pandas
+
+# Interface
+streamlit
+
+# Configurações e variáveis de ambiente
+python-dotenv
+
+# Testes
+pytest
