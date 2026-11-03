@@ -80,6 +80,7 @@ The agent is instructed to ground policy-related answers in the retrieved docume
 │   ├── orders.py
 │   ├── order_items.py
 │   ├── promotions.py
+│   ├── policies.py
 │   └── helpers.py
 ├── rag/
 │   └── inicialize_rag.py
@@ -88,6 +89,7 @@ The agent is instructed to ground policy-related answers in the retrieved docume
 │   ├── politicas_da_loja.pdf
 │   └── chroma_db/
 ├── tests/
+├── examples/
 ├── app.py
 ├── requirements.txt
 └── README.md
@@ -151,27 +153,33 @@ Make sure `.env` is included in `.gitignore` to prevent committing sensitive cre
 python -m agent.agent
 ```
 
+By default, diagnostic output is disabled. To display tool calls, arguments, full tool results, and execution time:
+
+```bash
+python -m agent.agent --debug
+```
+
+Debug output may include customer or order data returned by tools. Use it only for local troubleshooting and review it before sharing logs. The Streamlit interface keeps diagnostics disabled.
+
 **Streamlit interface:**
 
 ```bash
 streamlit run app.py
 ```
 
-## Example Queries
+## Recorded Interaction Examples
 
-The following examples illustrate the types of questions the assistant can handle.
+Five actual CLI interactions supplied by the project author are available in [`examples/`](examples/). Each file preserves the customer question and assistant response in Brazilian Portuguese, includes an English translation for reviewers, and summarizes the tool calls and execution time from the supplied output.
 
-| Category | Example |
+| Scenario | Conversation |
 |---|---|
-| Products | Which acoustic guitars are available for up to R$700? |
-| Categories | What products belong to the guitar category? |
-| Promotions | Which products currently have active promotions? |
-| Orders | What is the status of order #15? |
-| Customers | Which orders were placed by a specific customer? |
-| Payments | What payment methods does the store accept? |
-| Returns | What is the store's return and exchange policy? |
-| Delivery | What are the delivery timeframes for different shipping methods? |
-| Out of scope | What is the weather forecast for tomorrow? |
+| Category, price, and availability filtering | [Acoustic guitars under R$1,000](examples/01-product-search.md) |
+| Policy document retrieval | [Store address](examples/02-store-address.md) |
+| Product price and stock lookup | [Takamine GD20](examples/03-product-price.md) |
+| Applying return rules to a customer's situation | [Online purchase return](examples/04-online-return.md) |
+| Out-of-scope handling | [Unrelated request](examples/05-out-of-scope.md) |
+
+The catalog examples query the supplied CSV data at request time, not a live inventory service. Each request is independent; the examples do not demonstrate conversational memory.
 
 ## Tests
 
@@ -187,6 +195,8 @@ pytest -v
 
 The main technical decisions were guided by the challenge's scope, implementation simplicity, and the need for reliable information retrieval.
 
+- **Language choice:** The assistant serves customers in Brazilian Portuguese, matching the store's location, customer context, and source materials. The README is written in English to follow the recruitment instructions; the example queries retain the customer-facing language.
+
 - **ReAct and LangChain:** The ReAct approach was chosen to allow the agent to dynamically select and combine tools according to each request. LangChain provides the abstractions needed for tool integration and agent orchestration.
 
 - **No custom LangGraph workflow:** A custom LangGraph implementation was considered unnecessary for this prototype. The interaction flow is relatively straightforward, and LangChain's agent abstraction was sufficient without introducing additional orchestration complexity.
@@ -195,11 +205,11 @@ The main technical decisions were guided by the challenge's scope, implementatio
 
 - **RAG for unstructured data:** The policy manual contains natural-language information, making semantic retrieval more appropriate than direct filtering. ChromaDB was selected as a lightweight vector database, while Google's embedding model enables similarity-based search.
 
-- **Gemini:** Selected for its integration with LangChain and support for tool calling and natural-language generation.
+- **Gemini:** Selected for its integration with LangChain and support for tool calling and natural-language generation. Among the models I found with a free tier, it was the best fit for this prototype.
 
 - **Streamlit:** Chosen to provide a functional chat interface quickly, without requiring a separate frontend application.
 
-- **Independent requests:** Conversation history is not automatically passed between requests. This avoids unrelated previous messages influencing tool selection and data retrieval, making responses more predictable.
+- **Conversation history:** The Streamlit interface displays previous messages during the session, but each agent request is processed independently. During development, passing conversation history caused unrelated previous context to affect tool selection and trigger unnecessary calls. For this prototype, I prioritized predictable retrieval over conversational continuity. Follow-up questions therefore need to include the relevant product or order information.
 
 ## Limitations and Future Improvements
 
@@ -211,6 +221,7 @@ This is a prototype developed within the scope of a technical challenge. Some li
 - **Conversation context:** Introduce controlled conversational memory for follow-up questions without allowing previous context to interfere with independent searches.
 - **Error handling:** Improve resilience to API timeouts, rate limits, and external service failures.
 - **Scalability:** Replace CSV-based retrieval with a database if the application needs to support larger datasets or concurrent requests.
+- **Authentication and authorization:** This prototype does not implement customer authentication or access control for order and customer queries. Providing a name or customer ID is not identity verification. A production version would require an authenticated user context and authorization checks enforced by the application before accessing customer-specific data.
 
 ## AI-Assisted Development
 
