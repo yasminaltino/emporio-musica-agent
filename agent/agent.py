@@ -1,3 +1,4 @@
+import argparse
 import random
 import time
 
@@ -56,6 +57,8 @@ REGRAS:
     informe que a documentação não permite confirmar a resposta.
     - Não generalize uma regra além das condições descritas no documento.
     - Sempre que possível, informe a página de onde a informação foi obtida.
+    - Entrega para outras cidades não comprova cobertura de todos os CEPs
+    do Brasil. Se não houver confirmação explícita, informe essa limitação.
 
 6. Combine ferramentas quando necessário para responder
    completamente à pergunta.
@@ -75,9 +78,20 @@ REGRAS:
 
 11. Sempre que possível, combine os filtros em uma única chamada.
 
-12. Confie estritamente no primeiro resultado retornado pela ferramenta
-    de busca de produtos. Não faça buscas redundantes ou parciais
-    se a ferramenta já retornou dados para um filtro específico.
+12. Evite repetir consultas equivalentes. Antes de responder, verifique se os
+    resultados atendem à categoria, ao preço e à disponibilidade solicitados.
+    Se a consulta inicial usou um filtro inadequado, corrija os filtros.
+
+13. Para perguntas sobre pagamentos:
+    - payment_method informa a modalidade cadastrada, não comprova pagamento.
+    - Não descreva pedidos pendentes ou cancelados como pagos.
+    - Se os dados não permitirem confirmar o pagamento, explique a limitação
+    e use a expressão "pedidos com essa forma de pagamento cadastrada".
+
+14. Para perguntas fora do escopo:
+    - Não responda perguntas de conhecimento geral, mesmo relacionadas
+      à música, quando não tratarem de produtos ou atendimento da loja.
+    - Explique brevemente seu escopo e ofereça ajuda com a loja.
 """
 
 
@@ -101,7 +115,7 @@ tools = [
 agent = create_agent(model=model, tools=tools, system_prompt=SYSTEM_PROMPT)
 
 
-def ask_agent(question: str) -> str:
+def ask_agent(question: str, *, debug: bool = False) -> str:
     start = time.time()
     max_attempts = 3
 
@@ -130,19 +144,17 @@ def ask_agent(question: str) -> str:
             delay = (2**attempt) + random.uniform(0, 0.5)
             time.sleep(delay)
 
-    for message in response["messages"]:
-        # Chamadas feitas pelo modelo
-        if message.type == "ai" and message.tool_calls:
-            for tool_call in message.tool_calls:
-                print(f"\n[TOOL]: {tool_call['name']}")
-                print(f"[ARGS]: {tool_call['args']}")
+    if debug:
+        for message in response["messages"]:
+            if message.type == "ai" and message.tool_calls:
+                for tool_call in message.tool_calls:
+                    print(f"\n[TOOL]: {tool_call['name']}")
+                    print(f"[ARGS]: {tool_call['args']}")
+            elif message.type == "tool":
+                print(f"\n[TOOL RESULT]: {message.name}")
+                print(f"[OUTPUT]: {message.content}")
 
-        # Resultados retornados pelas ferramentas
-        elif message.type == "tool":
-            print(f"\n[TOOL RESULT]: {message.name}")
-            print(f"[OUTPUT]: {message.content}")
-
-    print(f"\n[TEMPO TOTAL]: {time.time() - start:.2f}s")
+        print(f"\n[TEMPO TOTAL]: {time.time() - start:.2f}s")
 
     last_message = response["messages"][-1]
     content = last_message.content
@@ -160,6 +172,16 @@ def ask_agent(question: str) -> str:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Empório da Música - Assistente Virtual"
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Exibe ferramentas, argumentos, resultados e tempo de execução.",
+    )
+    args = parser.parse_args()
+
     print("Empório da Música - Assistente Virtual")
     print("Digite 'sair' para encerrar.\n")
 
@@ -170,7 +192,7 @@ if __name__ == "__main__":
             break
 
         try:
-            answer = ask_agent(question)
+            answer = ask_agent(question, debug=args.debug)
             print(f"\nAssistente: {answer}\n")
 
         except Exception as error:
