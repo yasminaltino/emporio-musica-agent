@@ -169,7 +169,7 @@ streamlit run app.py
 
 ## Recorded Interaction Examples
 
-Five actual CLI interactions supplied by the project author are available in [`examples/`](examples/). Each file preserves the customer question and assistant response in Brazilian Portuguese, includes an English translation for reviewers, and summarizes the tool calls and execution time from the supplied output.
+Five actual CLI interactions are available in [`examples/`](examples/). Each file preserves the customer question and assistant response in Brazilian Portuguese, includes an English translation for reviewers, and summarizes the tool calls and execution time from the supplied output.
 
 | Scenario | Conversation |
 |---|---|
@@ -178,8 +178,6 @@ Five actual CLI interactions supplied by the project author are available in [`e
 | Product price and stock lookup | [Takamine GD20](examples/03-product-price.md) |
 | Applying return rules to a customer's situation | [Online purchase return](examples/04-online-return.md) |
 | Out-of-scope handling | [Unrelated request](examples/05-out-of-scope.md) |
-
-The catalog examples query the supplied CSV data at request time, not a live inventory service. Each request is independent; the examples do not demonstrate conversational memory.
 
 ## Tests
 
