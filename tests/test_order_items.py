@@ -23,7 +23,7 @@ def get_results(**kwargs):
 
 
 def test_search_items_by_order():
-    results = get_results(order_id=2)
+    results = get_results(order_ids=[2])
 
     assert len(results) == 2
     assert all(item["order_id"] == 2 for item in results)
@@ -36,6 +36,27 @@ def test_search_items_by_product():
 
 
 def test_search_nonexistent_order_item():
-    response = order_items.search_order_items.invoke({"order_id": 9999})
+    response = order_items.search_order_items.invoke({"order_ids": [9999]})
+
+    assert response == "No order items found."
+
+
+def test_search_items_by_multiple_orders():
+    results = get_results(order_ids=[1, 2])
+
+    assert len(results) == 3
+    assert {item["order_id"] for item in results} == {1, 2}
+
+
+def test_search_items_by_orders_and_product():
+    results = get_results(order_ids=[1, 2], product_id=81)
+
+    assert len(results) == 2
+    assert all(item["product_id"] == 81 for item in results)
+
+
+@pytest.mark.parametrize("order_ids", [[], [9999]])
+def test_search_items_by_empty_or_nonexistent_orders(order_ids):
+    response = order_items.search_order_items.invoke({"order_ids": order_ids})
 
     assert response == "No order items found."

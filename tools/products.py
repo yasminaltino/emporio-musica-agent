@@ -26,7 +26,8 @@ def search_products(
 ) -> str:
     """
     Busca instrumentos e produtos no catálogo da loja.
-    Use limit para restringir o número de resultados retornados ou None para retornar todos os resultados.
+    Use o parâmetro 'limit' para restringir o número de resultados retornados,
+    caso não queira limitar, passe 'None'.
     Crucial: Se a busca por 'name' ou 'specifications' retornar 'No products found.',
     significa que o item não existe na loja. Não tente palavras-chave alternativas,
     não remova os filtros informados pelo cliente e não faça buscas genéricas apenas por preço.

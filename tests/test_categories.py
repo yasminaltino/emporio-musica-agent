@@ -89,3 +89,10 @@ def test_search_nonexistent_category():
     )
 
     assert response == "No categories found."
+
+
+def test_search_categories_returns_all_results(monkeypatch, sample_categories):
+    data = pd.concat([sample_categories] * 3, ignore_index=True)
+    monkeypatch.setattr(categories, "load_categories", lambda: data.copy())
+
+    assert len(get_results()) == 15

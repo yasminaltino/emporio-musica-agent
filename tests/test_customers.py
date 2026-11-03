@@ -111,3 +111,18 @@ def test_search_nonexistent_customer():
     response = customers.search_customers.invoke({"name": "Cliente Inexistente"})
 
     assert response == "No customers found."
+
+
+def test_search_customers_with_limit():
+    results = get_results(limit=2)
+
+    assert len(results) == 2
+    assert [customer["customer_id"] for customer in results] == [1, 2]
+
+
+def test_search_customers_without_limit(monkeypatch, sample_customers):
+    data = pd.concat([sample_customers] * 3, ignore_index=True)
+    monkeypatch.setattr(customers, "load_customers", lambda: data.copy())
+
+    assert len(get_results()) == 10
+    assert len(get_results(limit=None)) == 15

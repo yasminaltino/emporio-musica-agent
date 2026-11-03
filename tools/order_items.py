@@ -12,19 +12,20 @@ def load_order_items():
 
 @tool
 def search_order_items(
-    order_id: int | None = None,
+    order_ids: list[int] | None = None,
     product_id: int | None = None,
 ) -> str:
     """
     Busca produtos incluídos em pedidos.
-    Pode filtrar por ID do pedido ou ID do produto.
+    Pode filtrar por IDs dos pedidos ou ID do produto.
+    Use order_ids para consultar um ou vários pedidos em uma chamada.
     Retorna o ID do pedido, ID do produto e quantidade.
     Retorna uma string JSON com os resultados da busca.
     """
     df = load_order_items()
 
-    if order_id is not None:
-        df = df[df["order_id"] == order_id]
+    if order_ids is not None:
+        df = df[df["order_id"].isin(order_ids)]
 
     if product_id is not None:
         df = df[df["product_id"] == product_id]

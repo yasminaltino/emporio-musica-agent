@@ -48,4 +48,4 @@ def search_categories(name: str = "", specifications: str = "") -> str:
     if df.empty:
         return "No categories found."
 
-    return df.head(10).to_json(orient="records", force_ascii=False)
+    return df.to_json(orient="records", force_ascii=False)

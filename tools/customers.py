@@ -26,9 +26,12 @@ def search_customers(
     email: str = "",
     phone: str = "",
     city: str = "",
+    limit: int | None = 10,
 ) -> str:
     """
     Busca clientes no cadastro da loja por nome, email, telefone ou cidade.
+    Use o parâmetro 'limit' para restringir o número de resultados retornados,
+    caso não queira limitar, passe 'None'.
     Crucial: Se a busca retornar 'No customers found.', o cliente não existe.
     Não tente variações ou outras palavras-chave após o retorno vazio.
     """
@@ -67,7 +70,9 @@ def search_customers(
     if df.empty:
         return "No customers found."
 
-    # Mantém o retorno leve com apenas 5 registros para evitar loops de token
-    results = df[["customer_id", "name", "city"]].head(8)
+    if limit is not None:
+        df = df.head(limit)
+
+    results = df[["customer_id", "name", "city"]]
 
     return results.to_json(orient="records", force_ascii=False)
